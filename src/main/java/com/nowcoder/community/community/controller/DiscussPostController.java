@@ -53,7 +53,7 @@ public class DiscussPostController implements CommunityConstant {
         post.setCreateTime(new Date());
         discussPostService.addDiscussPost(post);
 
-        //触发发帖事件
+        //触发发帖事件,同步最新的到elasticsearch
         Event event = new Event()
                 .setTopic(TOPIC_PUBLISH)
                 .setUserId(user.getId())
@@ -104,11 +104,11 @@ public class DiscussPostController implements CommunityConstant {
                 commentVo.put("user", userService.findUserById(comment.getUserId()));
                 //点赞数量
                 likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, comment.getId());
-                commentVo.put("likeCount",likeCount);
+                commentVo.put("likeCount", likeCount);
                 //点赞状态
                 likeStatus = hostHolder.getUser() == null ?
                         0 : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_COMMENT, comment.getId());
-                commentVo.put("likeStatus",likeStatus);
+                commentVo.put("likeStatus", likeStatus);
 
                 // 回复列表
                 List<Comment> replyList = commentService.findCommentsByEntity(
@@ -128,11 +128,11 @@ public class DiscussPostController implements CommunityConstant {
 
                         //点赞数量
                         likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, reply.getId());
-                        replyVo.put("likeCount",likeCount);
+                        replyVo.put("likeCount", likeCount);
                         //点赞状态
                         likeStatus = hostHolder.getUser() == null ?
                                 0 : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_COMMENT, reply.getId());
-                        replyVo.put("likeStatus",likeStatus);
+                        replyVo.put("likeStatus", likeStatus);
 
                         replyVoList.add(replyVo);
                     }
@@ -150,6 +150,63 @@ public class DiscussPostController implements CommunityConstant {
         model.addAttribute("comments", commentVoList);
 
         return "/site/discuss-detail";
+    }
+
+    //置顶
+    @RequestMapping(path = "/top", method = RequestMethod.POST)
+    @ResponseBody//异步刷新页面
+    public String setTop(int id) {
+        DiscussPost discussPostById = discussPostService.findDiscussPostById(id);
+        //如果获取到type为1（置顶状态）则，此时为置顶，则再次点击设置则为0（取消置顶）
+        int type = discussPostById.getType() ^ 1;
+        discussPostService.updateType(id, type);//0->正常，1->置顶
+        //返回结果
+        Map<String, Object> map = new HashMap<>();
+        map.put("type", type);
+        //触发发帖事件,同步最新的到elasticsearch
+        Event event = new Event()
+                .setTopic(TOPIC_PUBLISH)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(id);
+        eventProducer.fireEvent(event);
+        return CommunityUtil.getJsonString(0, null, map);
+    }
+
+    //加精
+    @RequestMapping(path = "/wonderful", method = RequestMethod.POST)
+    @ResponseBody//异步刷新页面
+    public String setWonderful(int id) {
+        DiscussPost discussPostById = discussPostService.findDiscussPostById(id);
+        //如果获取到type为1（置顶状态）则，此时为置顶，则再次点击设置则为0（取消置顶）
+        int status = discussPostById.getStatus() ^ 1;
+        discussPostService.updateStatus(id, status);//0->正常，1->精华，2->拉黑
+        //返回结果
+        Map<String, Object> map = new HashMap<>();
+        map.put("status", status);
+        //触发发帖事件,同步最新的到elasticsearch
+        Event event = new Event()
+                .setTopic(TOPIC_PUBLISH)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(id);
+        eventProducer.fireEvent(event);
+        return CommunityUtil.getJsonString(0, null, map);
+    }
+
+    //删除
+    @RequestMapping(path = "/delete", method = RequestMethod.POST)
+    @ResponseBody//异步刷新页面
+    public String setDelete(int id) {
+        discussPostService.updateStatus(id, 2);//0->正常，1->精华，2->拉黑
+        //触发删帖事件,同步最新的到elasticsearch
+        Event event = new Event()
+                .setTopic(TOPIC_DELETE)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(id);
+        eventProducer.fireEvent(event);
+        return CommunityUtil.getJsonString(0);
     }
 
 }
