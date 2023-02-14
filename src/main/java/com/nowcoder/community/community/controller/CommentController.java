@@ -8,8 +8,10 @@ import com.nowcoder.community.community.service.CommentService;
 import com.nowcoder.community.community.service.DiscussPostService;
 import com.nowcoder.community.community.util.CommunityConstant;
 import com.nowcoder.community.community.util.HostHolder;
+import com.nowcoder.community.community.util.RedisKeyUtil;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,9 +35,12 @@ public class CommentController implements CommunityConstant {
     @Autowired
     private DiscussPostService discussPostService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
 
     //添加评论
-    @RequestMapping(path = "/add/{discussPostId}",method = RequestMethod.POST)
+    @RequestMapping(path = "/add/{discussPostId}", method = RequestMethod.POST)
     public String addComment(@PathVariable("discussPostId") int discussPostId, Comment comment) {
         comment.setUserId(hostHolder.getUser().getId());
         comment.setStatus(0);
@@ -47,7 +52,7 @@ public class CommentController implements CommunityConstant {
                 .setUserId(hostHolder.getUser().getId())
                 .setEntityId(comment.getEntityId())
                 .setEntityType(comment.getEntityType())
-                .setData("postId",discussPostId);
+                .setData("postId", discussPostId);
 
         //触发评论事件
         if (comment.getEntityType() == ENTITY_TYPE_POST) {
@@ -67,8 +72,12 @@ public class CommentController implements CommunityConstant {
                     .setEntityType(ENTITY_TYPE_POST)
                     .setEntityId(discussPostId);
             eventProducer.fireEvent(event);
-        }
 
+            //热帖排行
+            //计算帖子分数
+            String redisKey = RedisKeyUtil.getPostScore();
+            redisTemplate.opsForSet().add(redisKey, discussPostId);
+        }
 
 
         return "redirect:/discuss/detail/" + discussPostId;

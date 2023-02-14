@@ -9,7 +9,9 @@ import com.nowcoder.community.community.service.UserService;
 import com.nowcoder.community.community.util.CommunityConstant;
 import com.nowcoder.community.community.util.CommunityUtil;
 import com.nowcoder.community.community.util.HostHolder;
+import com.nowcoder.community.community.util.RedisKeyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +40,9 @@ public class DiscussPostController implements CommunityConstant {
     @Autowired
     private LikeService likeService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @RequestMapping(path = "/add", method = RequestMethod.POST)
     @ResponseBody
     public String addDiscussPost(String title, String content) {
@@ -60,6 +65,10 @@ public class DiscussPostController implements CommunityConstant {
                 .setEntityType(ENTITY_TYPE_POST)
                 .setEntityId(post.getId());
         eventProducer.fireEvent(event);
+
+        //计算帖子score
+        String redisKey = RedisKeyUtil.getPostScore();
+        redisTemplate.opsForSet().add(redisKey,post.getId());
 
 
         //报错情况，将统一处理
@@ -191,6 +200,12 @@ public class DiscussPostController implements CommunityConstant {
                 .setEntityType(ENTITY_TYPE_POST)
                 .setEntityId(id);
         eventProducer.fireEvent(event);
+
+        //热帖排行
+        //计算帖子分数
+        String redisKey = RedisKeyUtil.getPostScore();
+        redisTemplate.opsForSet().add(redisKey,id);
+
         return CommunityUtil.getJsonString(0, null, map);
     }
 
