@@ -49,7 +49,7 @@ public class ElasticsearchTests {
 
     @Test
     public void testInsertList() {
-        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(101,0,100));
+        discussPostRepository.saveAll(discussPostMapper.selectDiscussPosts(101,0,100,0));
     }
 
     @Test

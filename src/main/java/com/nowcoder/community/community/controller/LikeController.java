@@ -60,8 +60,6 @@ public class LikeController implements CommunityConstant {
                     .setEntityUserId(entityUserId)
                     .setData("postId", postId);
             eventProducer.fireEvent(event);
-
-
         }
 
         //热帖排行

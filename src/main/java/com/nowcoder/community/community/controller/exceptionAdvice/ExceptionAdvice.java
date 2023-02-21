@@ -1,4 +1,4 @@
-package com.nowcoder.community.community.controller.advice;
+package com.nowcoder.community.community.controller.exceptionAdvice;
 
 import com.nowcoder.community.community.util.CommunityUtil;
 import org.slf4j.Logger;

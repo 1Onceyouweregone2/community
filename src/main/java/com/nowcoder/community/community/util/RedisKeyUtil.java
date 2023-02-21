@@ -20,10 +20,13 @@ public class RedisKeyUtil {
     private static final String PREFIX_POST = "post";
 
     //某个实体的赞
+    //key 为 like:entity:entityType:entityId -> value 为 set(userId)
     public static String getEntityLikeKey(int entityType, int entityId) {
         return PREFIX_ENTITY_LIKE + SPLIT + entityType + SPLIT + entityId;
     }
 
+    //某个用户收到的赞
+    //key 为 like:user:userId -> value 为 点赞数
     public static String getUserLikeKey(int userId) {
         return PREFIX_USER_LIKE + SPLIT + userId;
     }
