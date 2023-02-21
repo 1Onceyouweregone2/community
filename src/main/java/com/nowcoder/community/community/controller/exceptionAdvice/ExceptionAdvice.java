@@ -3,6 +3,8 @@ package com.nowcoder.community.community.controller.exceptionAdvice;
 import com.nowcoder.community.community.util.CommunityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -31,5 +33,11 @@ public class ExceptionAdvice {
         }else {
             response.sendRedirect(request.getContextPath() + "/error");
         }
+    }
+
+    @ExceptionHandler(BaseException.class)
+    public ResponseEntity<?> handleAppException(BaseException ex, HttpServletRequest request) {
+        ErrorResponse representation = new ErrorResponse(ex,request.getRequestURI());
+        return new ResponseEntity<>(representation,new HttpHeaders(),ex.getError().getStatus());
     }
 }
